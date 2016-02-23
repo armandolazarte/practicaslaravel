@@ -1,0 +1,5 @@
+suites:
+    main:
+        namespace: Siequipos
+        psr4_prefix: Siequipos
+        src_path: app

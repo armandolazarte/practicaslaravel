@@ -20,13 +20,14 @@ class StudentController extends Controller
     public function saverecord(Request $request)
     {
         // $poststudent = Input::all();
-        $poststudent = $request->all();
+        //$poststudent = $request->all();
+        $poststudent = $request->except(['id']);
         // return $poststudent;
 
         $rule = [
-            'student_name' => 'required',
-            'gender' => 'required',
-            'phone' => 'required'
+            'student_name' => 'required|unique:students,student_name',
+            'gender'       => 'required',
+            'phone'        => 'required',
         ];
 
         $this->validate($request, $rule);
@@ -34,15 +35,15 @@ class StudentController extends Controller
         $student = Student::create($poststudent);
 
         if ($student) {
-            if($request->ajax()) {
+            if ($request->ajax()) {
                 return response()->json([
-                    'success'=> true,
-                    'message'=> 'Estudiante Agregado',
+                    'success' => true,
+                    'message' => 'Estudiante Agregado',
                 ], 200);
             }
         }
 
-        /*$data = [
+        /*$data  = [
             'student_name' => $poststudent['studentname'],
             'gender'       => $poststudent['gender'],
             'phone'        => $poststudent['phone'],
@@ -56,9 +57,16 @@ class StudentController extends Controller
         }*/
     }
 
-    public function edit()
+    public function edit(Request $request)
     {
-        $postedit = Input::all();
+        $id = $request->input('id');
+        $student = Student::findOrFail($id);
+
+        if ($request->ajax()) {
+            return response()->json($student, 200);
+        }
+
+        /*$postedit = Input::all();
         $id       = $postedit['id'];
         // return $id;
         $data = \DB::table('students')->where('id', $id)->first();
@@ -67,12 +75,35 @@ class StudentController extends Controller
         // 1:04 HORA
         header("Content-type: text/x-json");
         echo json_encode($data);
-        exit();
+        exit();*/
     }
 
-    public function updaterecord()
+    public function updaterecord(Request $request)
     {
-        $poststudent = Input::all();
+        $poststudent = $request->all();
+        $id = $request->input('id');
+
+        $rule = [
+            'student_name' => 'required|unique:students,student_name,' . $id,
+            'gender'       => 'required',
+            'phone'        => 'required',
+        ];
+
+        $this->validate($request, $rule);
+
+        $student = Student::findOrFail($id);
+        $student->fill($poststudent);
+
+        if ($student->save()) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estudiante Actualizado',
+                ], 200);
+            }
+        }
+
+        /*$poststudent = Input::all();
 
         $data = [
             'student_name' => $poststudent['studentname'],
@@ -85,12 +116,16 @@ class StudentController extends Controller
             return 1;
         } else {
             return 0;
-        }
+        }*/
     }
 
-    public function delete()
+    public function delete(Request $request)
     {
-        $postedit = Input::all();
+        $id = $request->input('id');
+
+        $usuario = Student::destroy($id);
+
+        /*$postedit = Input::all();
         $id       = $postedit['id'];
         $data     = \DB::table('students')->where('id', $id)->delete();
 
@@ -99,14 +134,14 @@ class StudentController extends Controller
         } else {
             return 1;
         }
-        exit();
+        exit();*/
     }
 
     public function display()
     {
         $display = "";
         //$data    = \DB::table('students')->get();
-        $data    = Student::all();
+        $data = Student::all();
 
         foreach ($data as $key) {
             $gender = $key->gender;

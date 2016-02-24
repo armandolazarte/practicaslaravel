@@ -22,6 +22,8 @@
                         {{--<input type="hidden" name="_token" value="{{ csrf_token() }}" id="token">--}}
                         {!! csrf_field() !!}
 
+                        <input type="hidden" id="id" name="id">
+
                         <div class="form-group">
                             <label for="student_name">Nombre del Estudiante</label>
                             <input name="student_name" type="text" id="student_name" class="form-control" placeholder="Ingrese el nombre completo">
@@ -40,10 +42,10 @@
                         </div>
 
                         <div class="box-footer">
+                            <button type="button" id="newrecord"class="btn btn-primary">Nuevo</button>
                             <button type="button" id="saverecord" class="btn btn-primary">Guardar</button>
                             <button type="button" id="updaterecord" class="btn btn-primary">Actualizar</button>
                         </div>
-                        <input type="hidden" id="id">
                     </form>
 
                     <!-- Visualizar los datos -->
@@ -74,7 +76,7 @@
 @endsection
 
 @section('scripts')
-    <script type="text/javascript">
+    <script>
         $(function() {
             //$.ajaxSetup({ headers: {'X-CSRF-TOKEN': $('#token').val()} });
             $.ajaxSetup({
@@ -84,6 +86,12 @@
             // alert(0);
 
             displaydata();
+
+            $('#newrecord').click(function(e) {
+                e.preventDefault();
+
+                cleardata();
+            });
 
             //$('.saverecord').click(function() {
             $('#saverecord').click(function(e) {
@@ -105,20 +113,33 @@
                     type: "POST",
                     dataType : "json",
                     success: function(response) {
-                        error.hide().find('ul').empty();
-                        form[0].reset();
+                        cleardata();
+
+                        Lobibox.notify('success', {
+                            title: 'Éxito',
+                            msg: 'Estudiante creado satisfactoriamente',
+                            position: 'top right',
+                            showClass: 'fadeInDown',
+                            hideClass: 'fadeUpDown',
+                            width: 400,
+                            delay: 5000,
+                            sound: false,
+                        });
+
                         displaydata();
                     },
                     error: function(response) {
-                        var errors = $.parseJSON(response.responseText);
+                        if(response.status == 422) {
+                            var errors = $.parseJSON(response.responseText);
 
-                        error.hide().find('ul').empty();
+                            error.hide().find('ul').empty();
 
-                        $.each(errors, function(index, value) {
-                            error.find('ul').append('<li>' + value + '</li>');
-                        });
+                            $.each(errors, function(index, value) {
+                                error.find('ul').append('<li>' + value + '</li>');
+                            });
 
-                        error.slideDown();
+                            error.slideDown();
+                        }
                     },
                     complete: function(response) {
                     }
@@ -149,7 +170,24 @@
                 }); //Fin ajax*/
             }); //Fin saverecord
 
-            $('body').delegate('.editar', 'click', function()
+
+            // Editar un estudiante
+            $('body').on('click', '.editar', function(e) {
+                e.preventDefault();
+
+                var url = "{{ url('editrow') }}";
+                var id = $(this).data('id');
+                var data = {'id' : id}
+
+                $.post(url, data, function(response) {
+                    $.each(response, function(index, value) {
+                        $('input[name="' + index + '"]').val(value);
+                        $('select option[value="' + value + '"]').prop('selected', true);
+                    });
+                });
+            });
+
+            /*$('body').delegate('.editar', 'click', function()
             {
                 var id = $(this).data('id');
                 // alert(id);
@@ -171,9 +209,57 @@
                         $('#phone').val(e.phone);
                     }
                 }); //Fin ajax
+            });*/
+
+            // Actualizar estudiante
+            $('#updaterecord').click(function(e) {
+                e.preventDefault();
+
+                var url = "{{ url('update') }}";
+                var form = $('#formStudent');
+                var data = form.serialize();
+                var error = $('#errorForm');
+
+                $.ajax({
+                    url: url,
+                    data: data,
+                    type: "POST",
+                    dataType : "json",
+                    success: function(response) {
+                        cleardata();
+
+                        Lobibox.notify('success', {
+                            title: 'Éxito',
+                            msg: 'Estudiante actualizado satisfactoriamente',
+                            position: 'top right',
+                            showClass: 'fadeInDown',
+                            hideClass: 'fadeUpDown',
+                            width: 400,
+                            delay: 5000,
+                            sound: false,
+                        });
+
+                        displaydata();
+                    },
+                    error: function(response) {
+                        if(response.status == 422) {
+                            var errors = $.parseJSON(response.responseText);
+
+                            error.hide().find('ul').empty();
+
+                            $.each(errors, function(index, value) {
+                                error.find('ul').append('<li>' + value + '</li>');
+                            });
+
+                            error.slideDown();
+                        }
+                    },
+                    complete: function(response) {
+                    }
+                });
             });
 
-            $('#updaterecord').click(function()
+            /*$('#updaterecord').click(function()
             {
                 var id          = $('#id').val();
                 var studentname = $('#student_name').val();
@@ -204,9 +290,44 @@
                         }
                     }
                 }); //Fin ajax
-            }); //Fin updaterecord
+            }); //Fin updaterecord*/
 
-            $('body').delegate('.eliminar', 'click', function()
+
+            // Eliminar usuario
+            $('body').on('click', '.eliminar', function(e) {
+                e.preventDefault();
+
+                var url = "{{ url('deleterow') }}";
+                var id = $(this).data('id');
+                var data = {'id' : id};
+
+                Lobibox.confirm({
+                    title: 'Eliminar',
+                    msg: "Seguro que quieres eliminar este estudiante?",
+                    callback: function ($this, type, ev) {
+                        if (type === 'yes') {
+                            $.post(url, data, function() {
+                                Lobibox.notify('success', {
+                                    title: 'Éxito',
+                                    msg: 'Estudiante eliminado satisfactoriamente',
+                                    position: 'top right',
+                                    showClass: 'fadeInDown',
+                                    hideClass: 'fadeUpDown',
+                                    width: 400,
+                                    delay: 5000,
+                                    sound: false,
+                                });
+
+                                displaydata();
+                            });
+                        } else if (type === 'no') {
+
+                        }
+                    }
+                });
+            });
+
+            /*$('body').delegate('.eliminar', 'click', function()
             {
                 var id = $(this).data('id');
                 // alert(id);
@@ -230,8 +351,16 @@
                         }
                     }
                 }); //Fin ajax
-            });
+            });*/
         }); //function()
+
+        // Limpiar Campos
+        function cleardata() {
+            $('#errorForm').hide().find('ul').empty();
+            $(':input').not('input[name="_token"]').val('');
+            //$('#formStudent')[0].reset();
+            //$('#id').val('');
+        }
 
         // Visuaizar los datos
         function displaydata() {
